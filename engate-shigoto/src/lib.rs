@@ -238,6 +238,43 @@ mod tests {
         }
     }
 
+    #[test]
+    fn attach_job_kind_constant_is_engate_attach() {
+        assert_eq!(<AttachJob<TestProducer, TestConsumer> as RecordingJob>::KIND, "engate.attach");
+    }
+
+    #[test]
+    fn attach_job_scope_subject_round_trip() {
+        let prod = TestProducer {
+            snap: vec![],
+            shared_tx: Arc::new(Mutex::new(None)),
+        };
+        let cons = TestConsumer::default();
+        let job = AttachJob::new(
+            JobScope::Workspace("test-stack".into()),
+            JobSubject::Pinned("test-attach".into()),
+            prod,
+            cons,
+        );
+        assert_eq!(job.scope(), JobScope::Workspace("test-stack".into()));
+        assert_eq!(job.subject(), JobSubject::Pinned("test-attach".into()));
+        assert!(job.output_sink().is_none()); // not set
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn attach_job_one_shot_already_consumed_error() {
+        let prod = TestProducer {
+            snap: vec![],
+            shared_tx: Arc::new(Mutex::new(None)),
+        };
+        let cons = TestConsumer::default();
+        let job = AttachJob::new(JobScope::Global, JobSubject::None, prod, cons);
+        // Simulate prior execution by taking the inner.
+        job.inner.lock().await.take();
+        let err = job.execute_body().await.unwrap_err();
+        assert!(matches!(err, AttachJobError::AlreadyConsumed));
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn attach_job_runs_full_lifecycle() {
         let observed = Arc::new(Mutex::new(Vec::<u8>::new()));
