@@ -243,4 +243,84 @@ mod tests {
         let back: EngateSpec = serde_json::from_str(&yaml).unwrap();
         assert_eq!(s, back);
     }
+
+    // ── Expanded coverage ─────────────────────────────────────────
+
+    #[test]
+    fn engate_spec_history_required_defaults_to_true() {
+        // The field has #[serde(default = "default_true_bool")] so an
+        // input missing the key should deserialize to true. Operators
+        // who omit the field get safe-by-default semantics.
+        let json = r#"{
+            "name": "x",
+            "producer": { "crate_name": "p-crate", "path": "p::Type" },
+            "consumer": { "crate_name": "c-crate", "path": "c::Type" }
+        }"#;
+        let s: EngateSpec = serde_json::from_str(json).unwrap();
+        assert!(s.history_required);
+        assert!(s.attestation_fixture.is_none());
+    }
+
+    #[test]
+    fn engate_spec_clone_equals_original() {
+        let s = EngateSpec {
+            name: "n".into(),
+            producer: TypePath { crate_name: "p".into(), path: "p::T".into() },
+            consumer: TypePath { crate_name: "c".into(), path: "c::T".into() },
+            history_required: false,
+            attestation_fixture: None,
+        };
+        assert_eq!(s, s.clone());
+    }
+
+    #[test]
+    fn type_path_equality_per_field() {
+        let a = TypePath { crate_name: "x".into(), path: "x::Y".into() };
+        let b = TypePath { crate_name: "x".into(), path: "x::Y".into() };
+        let c = TypePath { crate_name: "x".into(), path: "x::Z".into() };
+        let d = TypePath { crate_name: "z".into(), path: "x::Y".into() };
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+        assert_ne!(a, d);
+    }
+
+    #[test]
+    fn all_attach_error_variants_constructible_and_displayable() {
+        let errs = [
+            AttachError::SnapshotFailed("disk full".into()),
+            AttachError::SubscribeFailed("permission".into()),
+            AttachError::NoSuchEntity("pane-x".into()),
+            AttachError::Transport("connection reset".into()),
+        ];
+        for e in errs {
+            let s = e.to_string();
+            assert!(!s.is_empty(), "Display non-empty for {e:?}");
+        }
+    }
+
+    #[test]
+    fn attach_error_round_trips_through_serde() {
+        // AttachError derives Serialize + Deserialize so it can travel
+        // across IPC boundaries (e.g. shigoto's audit chain).
+        let e = AttachError::Transport("connection reset by peer".into());
+        let json = serde_json::to_string(&e).unwrap();
+        let back: AttachError = serde_json::from_str(&json).unwrap();
+        assert_eq!(e.to_string(), back.to_string());
+    }
+
+    #[test]
+    fn snapshot_impl_for_string() {
+        let s: String = "hello".into();
+        assert_eq!(<String as Snapshot>::size_bytes(&s), 5);
+    }
+
+    #[test]
+    fn snapshot_default_size_bytes_is_zero() {
+        // Custom impls that don't override size_bytes() get 0 — the
+        // default. Useful for typed-marker snapshots that carry no
+        // payload (just a "subscribed at" timestamp etc.).
+        struct EmptyMarker;
+        impl Snapshot for EmptyMarker {}
+        assert_eq!(<EmptyMarker as Snapshot>::size_bytes(&EmptyMarker), 0);
+    }
 }

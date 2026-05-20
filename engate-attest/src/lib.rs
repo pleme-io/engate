@@ -204,4 +204,63 @@ mod tests {
         let b = Attestation::from_components(b"snap", b"live", b"obs", 1);
         assert!(a.verify_against(&b).is_ok());
     }
+
+    // ── Expanded coverage ─────────────────────────────────────────
+
+    #[test]
+    fn observed_drift_diagnosed_specifically() {
+        let expected = Attestation::from_components(b"snap", b"live", b"old-obs", 1);
+        let actual = Attestation::from_components(b"snap", b"live", b"new-obs", 1);
+        let drift = actual.verify_against(&expected).unwrap_err();
+        assert_eq!(drift.component, DriftComponent::Observed);
+    }
+
+    #[test]
+    fn live_item_count_preserved_through_fixture() {
+        let a = Attestation::from_components(b"s", b"abcdef", b"o", 6);
+        let s = a.to_fixture().unwrap();
+        let b = Attestation::from_fixture(&s).unwrap();
+        assert_eq!(b.live_item_count, 6);
+        assert_eq!(b.snapshot_bytes, 1);
+    }
+
+    #[test]
+    fn empty_payload_attestation_is_stable() {
+        let a = Attestation::from_components(b"", b"", b"", 0);
+        let b = Attestation::from_components(b"", b"", b"", 0);
+        assert_eq!(a.root_hash, b.root_hash);
+        // BLAKE3 of empty is a known constant; just confirm it's
+        // non-empty (no panic, non-zero length hex).
+        assert_eq!(a.snapshot_hash.len(), 64);
+        assert_eq!(a.live_hash.len(), 64);
+        assert_eq!(a.observed_hash.len(), 64);
+        assert_eq!(a.root_hash.len(), 64);
+    }
+
+    #[test]
+    fn drift_component_round_trips_through_serde() {
+        for dc in [
+            DriftComponent::Snapshot,
+            DriftComponent::Live,
+            DriftComponent::Observed,
+            DriftComponent::Root,
+        ] {
+            let json = serde_json::to_string(&dc).unwrap();
+            let back: DriftComponent = serde_json::from_str(&json).unwrap();
+            assert_eq!(dc, back);
+        }
+    }
+
+    #[test]
+    fn large_payload_attestation_does_not_panic() {
+        let snap: Vec<u8> = (0..100_000).map(|i| (i % 251) as u8).collect();
+        let live: Vec<u8> = (0..50_000).map(|i| (i % 199) as u8).collect();
+        let obs: Vec<u8> = (0..200_000).map(|i| (i % 7) as u8).collect();
+        let a = Attestation::from_components(&snap, &live, &obs, 50_000);
+        assert_eq!(a.snapshot_bytes, 100_000);
+        assert_eq!(a.live_item_count, 50_000);
+        // Determinism: same inputs always yield the same root.
+        let b = Attestation::from_components(&snap, &live, &obs, 50_000);
+        assert_eq!(a, b);
+    }
 }
