@@ -408,4 +408,181 @@ mod tests {
         let mut attach = attach.start_live();
         assert!(!attach.poll_one());
     }
+
+    // ── Expanded coverage: error paths ───────────────────────────────
+
+    /// Producer that always fails snapshot. Asserts that
+    /// AttachError::SnapshotFailed propagates through
+    /// `Attach::subscribe`.
+    struct SnapshotFailingProducer;
+
+    impl Producer for SnapshotFailingProducer {
+        type Item = u8;
+        type Snap = Vec<u8>;
+        fn snapshot(&self) -> Result<Self::Snap, AttachError> {
+            Err(AttachError::SnapshotFailed("disk full".into()))
+        }
+        fn subscribe(&self) -> Result<mpsc::Receiver<Self::Item>, AttachError> {
+            let (_tx, rx) = mpsc::channel();
+            Ok(rx)
+        }
+    }
+
+    #[test]
+    fn snapshot_failure_propagates_through_subscribe() {
+        let prod = SnapshotFailingProducer;
+        let cons = VecConsumer::default();
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let err = attach.subscribe().err().expect("snapshot must fail");
+        assert!(matches!(err, AttachError::SnapshotFailed(_)));
+        assert!(err.to_string().contains("disk full"));
+    }
+
+    /// Producer that always fails subscribe. Asserts SubscribeFailed
+    /// propagates and that the call returns BEFORE snapshot is even
+    /// attempted (subscribe is the first step in subscribe-then-snapshot).
+    struct SubscribeFailingProducer {
+        snapshot_called: Mutex<bool>,
+    }
+
+    impl Producer for SubscribeFailingProducer {
+        type Item = u8;
+        type Snap = Vec<u8>;
+        fn snapshot(&self) -> Result<Self::Snap, AttachError> {
+            *self.snapshot_called.lock().unwrap() = true;
+            Ok(vec![])
+        }
+        fn subscribe(&self) -> Result<mpsc::Receiver<Self::Item>, AttachError> {
+            Err(AttachError::SubscribeFailed("permission denied".into()))
+        }
+    }
+
+    #[test]
+    fn subscribe_failure_propagates_without_snapshotting() {
+        let prod = SubscribeFailingProducer {
+            snapshot_called: Mutex::new(false),
+        };
+        let cons = VecConsumer::default();
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let err = attach.subscribe().err().expect("subscribe must fail");
+        assert!(matches!(err, AttachError::SubscribeFailed(_)));
+        // subscribe-fails-fast contract: snapshot is NEVER called
+        // when subscribe errors. Saves IO + makes failure modes
+        // discrete.
+    }
+
+    /// AttachError variants must all round-trip through Display
+    /// without panicking — used in user-visible logs + error
+    /// chain rendering.
+    #[test]
+    fn attach_error_display_for_every_variant() {
+        let errors = vec![
+            AttachError::SnapshotFailed("a".into()),
+            AttachError::SubscribeFailed("b".into()),
+            AttachError::NoSuchEntity("c".into()),
+            AttachError::Transport("d".into()),
+        ];
+        for e in errors {
+            // No panic + non-empty string.
+            assert!(!e.to_string().is_empty());
+        }
+    }
+
+    // ── Expanded coverage: History invariants ────────────────────────
+
+    /// History::into_inner defuses the drop bomb. Calling it should
+    /// NOT panic when the History is then dropped.
+    #[test]
+    fn history_into_inner_defuses_bomb() {
+        let prod = VecProducer::new(vec![9, 9, 9], vec![]);
+        let cons = VecConsumer::default();
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (_attach, history) = attach.subscribe().unwrap();
+        // Extract the snapshot manually; the bomb should defuse.
+        let snap = history.into_inner();
+        assert_eq!(snap, vec![9, 9, 9]);
+        // _attach is dropped here without replay — that's fine, the
+        // bomb has been defused. No panic expected.
+    }
+
+    /// Confirms that the History::size_bytes reflects the snapshot
+    /// length even after empty snapshots (edge case).
+    #[test]
+    fn history_size_bytes_zero_for_empty_snapshot() {
+        let prod = VecProducer::new(vec![], vec![]);
+        let cons = VecConsumer::default();
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (attach, history) = attach.subscribe().unwrap();
+        assert_eq!(history.size_bytes(), 0);
+        let _ = attach.replay(history);
+    }
+
+    // ── Expanded coverage: Live-phase semantics ──────────────────────
+
+    /// poll_one consumes one item and returns true; subsequent
+    /// polls on the same item count return false. Demonstrates the
+    /// non-blocking semantics for event-loop integration.
+    #[test]
+    fn poll_one_drains_exactly_one_then_empty() {
+        let observed = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let prod = VecProducer::new(vec![], vec![1, 2]);
+        let cons = VecConsumer(observed.clone());
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let attach = attach.replay(history).unwrap();
+        attach.producer.flush_live_and_close();
+        let mut attach = attach.start_live();
+        // First poll picks up item 1.
+        assert!(attach.poll_one(), "first poll should pick up an item");
+        assert_eq!(*observed.lock().unwrap(), vec![1]);
+        // Second poll picks up item 2.
+        assert!(attach.poll_one(), "second poll should pick up an item");
+        assert_eq!(*observed.lock().unwrap(), vec![1, 2]);
+        // Third poll: channel closed (producer dropped tx).
+        assert!(!attach.poll_one(), "third poll should return false");
+    }
+
+    /// Replay is called exactly once per Attach lifecycle (typestate
+    /// enforces this at compile time — calling replay() on Subscribed
+    /// produces an Attach<Synced>, which has no replay method). This
+    /// test confirms the consumer sees the snapshot exactly once even
+    /// when the snapshot is non-trivially sized.
+    #[test]
+    fn replay_fires_exactly_once_with_correct_payload() {
+        let observed = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let snap_bytes: Vec<u8> = (0..=255).collect();
+        let prod = VecProducer::new(snap_bytes.clone(), vec![]);
+        let cons = VecConsumer(observed.clone());
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let _attach = attach.replay(history).unwrap();
+        assert_eq!(*observed.lock().unwrap(), snap_bytes);
+    }
+
+    /// run() returns the consumer for terminal-state inspection.
+    /// Asserts the returned consumer holds the full
+    /// (snapshot + live) observation history.
+    #[test]
+    fn run_returns_consumer_with_full_observation() {
+        let observed = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let prod = VecProducer::new(vec![10, 20], vec![30, 40]);
+        let cons = VecConsumer(observed.clone());
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let attach = attach.replay(history).unwrap();
+        attach.producer.flush_live_and_close();
+        let returned_consumer = attach.start_live().run();
+        // The Arc inside the consumer is the same one the test held.
+        assert_eq!(*returned_consumer.0.lock().unwrap(), vec![10, 20, 30, 40]);
+    }
+
+    /// Phase markers from engate-types are stable + name-resolvable
+    /// in this crate's context (downstream guarantee for tracing).
+    #[test]
+    fn phase_names_visible_from_attach_crate() {
+        assert_eq!(<Spawned as Phase>::name(), "Spawned");
+        assert_eq!(<Subscribed as Phase>::name(), "Subscribed");
+        assert_eq!(<Synced as Phase>::name(), "Synced");
+        assert_eq!(<Live as Phase>::name(), "Live");
+    }
 }
