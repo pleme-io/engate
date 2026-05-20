@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+    "engate-types",
+    "engate-attach",
+    "engate-shigoto",
+    "engate-attest",
+]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+authors = ["pleme-io <ops@pleme.io>"]
+repository = "https://github.com/pleme-io/engate"
+homepage = "https://github.com/pleme-io/engate"
+description = "Typed producer↔consumer attach with snapshot-replay — kills attach-race bugs by construction"
+
+[workspace.dependencies]
+engate-types = { path = "engate-types", version = "0.1.0" }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tracing = "0.1"
+
+# Typestate FSM (Spawned → Subscribed → Synced → Live).
+statig = "0.3"
+# Compile-time required-field enforcement on AttachBuilder.
+typed-builder = "0.21"
+# Runtime fallback: panic if History is dropped without being consumed.
+# (Belt for the suspenders provided by typestate.)
+drop_bomb = "0.1"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "z"
+strip = true

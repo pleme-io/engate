@@ -1,0 +1,31 @@
+[package]
+name = "engate-shigoto"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Bridge — wrap engate Attach lifecycle as a shigoto RecordingJob with HistoryFetched + SubscriptionLive gates"
+
+[lints]
+workspace = true
+
+[dependencies]
+engate-types.workspace = true
+engate-attach = { path = "../engate-attach", version = "0.1.0" }
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+# shigoto types + gate primitives
+shigoto-types = { git = "https://github.com/pleme-io/shigoto", branch = "main" }
+shigoto-gate = { git = "https://github.com/pleme-io/shigoto", branch = "main" }
+
+# RecordingJob impl needs async_trait + tokio
+async-trait = "0.1"
+tokio = { version = "1", features = ["rt", "macros", "sync"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }

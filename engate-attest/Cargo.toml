@@ -1,0 +1,20 @@
+[package]
+name = "engate-attest"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Attestation chain for engate attaches — BLAKE3 over (snapshot, live items, observed state) for CI-level regression detection"
+
+[lints]
+workspace = true
+
+[dependencies]
+engate-types.workspace = true
+serde.workspace = true
+serde_json = "1"
+blake3 = "1"
+thiserror.workspace = true
