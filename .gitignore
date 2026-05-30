@@ -5,3 +5,4 @@ crate-hashes.json
 .direnv
 result
 result-*
+Cargo.build-spec.json
