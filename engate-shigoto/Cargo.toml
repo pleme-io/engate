@@ -20,8 +20,8 @@ thiserror.workspace = true
 tracing.workspace = true
 
 # shigoto types + gate primitives
-shigoto-types = { git = "https://github.com/pleme-io/shigoto", branch = "main" }
-shigoto-gate = { git = "https://github.com/pleme-io/shigoto", branch = "main" }
+shigoto-types = { git = "https://github.com/pleme-io/shigoto", branch = "main" , version = "0.1" }
+shigoto-gate = { git = "https://github.com/pleme-io/shigoto", branch = "main" , version = "0.1" }
 
 # RecordingJob impl needs async_trait + tokio
 async-trait = "0.1"
