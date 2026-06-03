@@ -279,6 +279,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen-macros"
+version = "0.1.8"
+source = "git+https://github.com/pleme-io/gen#e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "gen-platform"
+version = "0.1.8"
+source = "git+https://github.com/pleme-io/gen#e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3"
+dependencies = [
+ "gen-macros",
+ "gen-types",
+ "inventory",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "gen-types"
+version = "0.1.8"
+source = "git+https://github.com/pleme-io/gen#e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3"
+dependencies = [
+ "blake3",
+ "chrono",
+ "indexmap",
+ "inventory",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "generator"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -379,6 +416,15 @@ dependencies = [
  "hashbrown 0.17.1",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "inventory"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4f0c30c76f2f4ccee3fe55a2435f691ca00c0e4bd87abe4f4a851b1d4dac39b"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]
@@ -758,8 +804,8 @@ dependencies = [
 
 [[package]]
 name = "shigoto-dag"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/shigoto?branch=main#d8b154f7c40e58dc0a4d98f08a6d847122471181"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/shigoto?branch=main#ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e"
 dependencies = [
  "petgraph",
  "serde",
@@ -769,8 +815,8 @@ dependencies = [
 
 [[package]]
 name = "shigoto-gate"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/shigoto?branch=main#d8b154f7c40e58dc0a4d98f08a6d847122471181"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/shigoto?branch=main#ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e"
 dependencies = [
  "shigoto-dag",
  "shigoto-types",
@@ -778,11 +824,13 @@ dependencies = [
 
 [[package]]
 name = "shigoto-types"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/shigoto?branch=main#d8b154f7c40e58dc0a4d98f08a6d847122471181"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/shigoto?branch=main#ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e"
 dependencies = [
  "async-trait",
  "chrono",
+ "gen-platform",
+ "gen-types",
  "schemars",
  "serde",
  "serde_json",
