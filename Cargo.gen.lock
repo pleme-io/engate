@@ -385,7 +385,7 @@
           },
           {
             "name": "shigoto_gate",
-            "package_key": "shigoto-gate-0.1.5",
+            "package_key": "shigoto-gate-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -395,7 +395,7 @@
           },
           {
             "name": "shigoto_types",
-            "package_key": "shigoto-types-0.1.5",
+            "package_key": "shigoto-types-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -539,7 +539,7 @@
           "std"
         ]
       },
-      "gen-macros-0.1.8": {
+      "gen-macros-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -578,11 +578,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.8": {
+      "gen-platform-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.8",
+            "package_key": "gen-macros-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -592,7 +592,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.8",
+            "package_key": "gen-types-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -646,7 +646,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.8": {
+      "gen-types-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -1907,7 +1907,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shigoto-dag-0.1.5": {
+      "shigoto-dag-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": {
         "runtime_dependencies": [
           {
             "name": "petgraph",
@@ -1933,7 +1933,7 @@
           },
           {
             "name": "shigoto_types",
-            "package_key": "shigoto-types-0.1.5",
+            "package_key": "shigoto-types-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1955,11 +1955,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "shigoto-gate-0.1.5": {
+      "shigoto-gate-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": {
         "runtime_dependencies": [
           {
             "name": "shigoto_dag",
-            "package_key": "shigoto-dag-0.1.5",
+            "package_key": "shigoto-dag-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1969,7 +1969,7 @@
           },
           {
             "name": "shigoto_types",
-            "package_key": "shigoto-types-0.1.5",
+            "package_key": "shigoto-types-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1981,7 +1981,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shigoto-types-0.1.5": {
+      "shigoto-types-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -2007,7 +2007,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.8",
+            "package_key": "gen-platform-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2017,7 +2017,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.8",
+            "package_key": "gen-types-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3797,8 +3797,8 @@
     "constant_time_eq-0.4.2": {
       "edition": "2024"
     },
-    "core-foundation-sys-0.8.7": {
-      "edition": "2018"
+    "cpufeatures-0.3.0": {
+      "edition": "2024"
     },
     "drop_bomb-0.1.5": {
       "edition": "2015"
@@ -3856,14 +3856,14 @@
         "path": "lib.rs"
       }
     },
-    "gen-macros-0.1.8": {
+    "gen-macros-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.8": {
+    "gen-platform-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": {
       "edition": "2024"
     },
-    "gen-types-0.1.8": {
+    "gen-types-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": {
       "edition": "2024"
     },
     "generator-0.8.8": {
@@ -3899,6 +3899,9 @@
     "libc-0.2.186": {
       "edition": "2021",
       "build_script": "build.rs"
+    },
+    "linux-raw-sys-0.12.1": {
+      "edition": "2021"
     },
     "log-0.4.29": {
       "edition": "2021"
@@ -4012,13 +4015,13 @@
     "sharded-slab-0.1.7": {
       "edition": "2018"
     },
-    "shigoto-dag-0.1.5": {
+    "shigoto-dag-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": {
       "edition": "2024"
     },
-    "shigoto-gate-0.1.5": {
+    "shigoto-gate-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": {
       "edition": "2024"
     },
-    "shigoto-types-0.1.5": {
+    "shigoto-types-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": {
       "edition": "2024"
     },
     "shlex-1.3.0": {
@@ -4105,20 +4108,17 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "cpufeatures-0.3.0": {
-      "edition": "2024"
-    },
-    "linux-raw-sys-0.12.1": {
-      "edition": "2021"
+    "core-foundation-sys-0.8.7": {
+      "edition": "2018"
     }
   },
   "git_nar_sha256": {
-    "gen-macros-0.1.8": "sha256-hA8kXaLIsrlPaSGp+K2uHbD+Q9dkJwRAhZlgVdIDb/0=",
-    "gen-platform-0.1.8": "sha256-hA8kXaLIsrlPaSGp+K2uHbD+Q9dkJwRAhZlgVdIDb/0=",
-    "gen-types-0.1.8": "sha256-hA8kXaLIsrlPaSGp+K2uHbD+Q9dkJwRAhZlgVdIDb/0=",
-    "shigoto-dag-0.1.5": "sha256-akWGlSEnByVXyXtgpKak2eXN9aXQ1/xdXW99Ow10UaY=",
-    "shigoto-gate-0.1.5": "sha256-akWGlSEnByVXyXtgpKak2eXN9aXQ1/xdXW99Ow10UaY=",
-    "shigoto-types-0.1.5": "sha256-akWGlSEnByVXyXtgpKak2eXN9aXQ1/xdXW99Ow10UaY="
+    "gen-macros-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": "sha256-hA8kXaLIsrlPaSGp+K2uHbD+Q9dkJwRAhZlgVdIDb/0=",
+    "gen-platform-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": "sha256-hA8kXaLIsrlPaSGp+K2uHbD+Q9dkJwRAhZlgVdIDb/0=",
+    "gen-types-0.1.8-e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3": "sha256-hA8kXaLIsrlPaSGp+K2uHbD+Q9dkJwRAhZlgVdIDb/0=",
+    "shigoto-dag-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": "sha256-akWGlSEnByVXyXtgpKak2eXN9aXQ1/xdXW99Ow10UaY=",
+    "shigoto-gate-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": "sha256-akWGlSEnByVXyXtgpKak2eXN9aXQ1/xdXW99Ow10UaY=",
+    "shigoto-types-0.1.5-ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e": "sha256-akWGlSEnByVXyXtgpKak2eXN9aXQ1/xdXW99Ow10UaY="
   },
   "flake_metadata": {}
 }
