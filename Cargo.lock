@@ -161,7 +161,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "engate-attach"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "drop_bomb",
  "engate-types",
@@ -175,7 +175,7 @@ dependencies = [
 
 [[package]]
 name = "engate-attest"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "blake3",
  "engate-types",
@@ -186,7 +186,7 @@ dependencies = [
 
 [[package]]
 name = "engate-shigoto"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "engate-attach",
@@ -201,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "engate-types"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",

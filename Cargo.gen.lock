@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "c089db15b35563ecf16dc68becb7344f9b496bef54236aec72e77cf132463e86",
+  "cargo_lock_sha256": "a36525674171f769252e65edea62d706c58e8a830d0088433bd6afcdc493aeb9",
   "target_resolves": {
     "base": {
       "aho-corasick-1.1.4": {
@@ -211,7 +211,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engate-attach-0.1.0": {
+      "engate-attach-0.1.1": {
         "runtime_dependencies": [
           {
             "name": "drop_bomb",
@@ -225,7 +225,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0",
+            "package_key": "engate-types-0.1.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -281,7 +281,7 @@
           "default"
         ]
       },
-      "engate-attest-0.1.0": {
+      "engate-attest-0.1.1": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -295,7 +295,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0",
+            "package_key": "engate-types-0.1.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -339,7 +339,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engate-shigoto-0.1.0": {
+      "engate-shigoto-0.1.1": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -353,7 +353,7 @@
           },
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.0",
+            "package_key": "engate-attach-0.1.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -363,7 +363,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0",
+            "package_key": "engate-types-0.1.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -441,7 +441,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engate-types-0.1.0": {
+      "engate-types-0.1.1": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -3806,28 +3806,28 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
-    "engate-attach-0.1.0": {
+    "engate-attach-0.1.1": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_attach",
         "path": "src/lib.rs"
       }
     },
-    "engate-attest-0.1.0": {
+    "engate-attest-0.1.1": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_attest",
         "path": "src/lib.rs"
       }
     },
-    "engate-shigoto-0.1.0": {
+    "engate-shigoto-0.1.1": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_shigoto",
         "path": "src/lib.rs"
       }
     },
-    "engate-types-0.1.0": {
+    "engate-types-0.1.1": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_types",
