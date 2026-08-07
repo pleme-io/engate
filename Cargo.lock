@@ -280,8 +280,9 @@ dependencies = [
 
 [[package]]
 name = "gen-macros"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/gen#e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3"
+version = "0.1.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e87d6e8b417dad4ba0d2ed96c58c2cd7af538f592dcf698db0cd8480b08225ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -290,8 +291,9 @@ dependencies = [
 
 [[package]]
 name = "gen-platform"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/gen#e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3"
+version = "0.1.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "340242b11b413b24644f55a9dd7ffd05e371910a738ab52981a03a6ffedf6783"
 dependencies = [
  "gen-macros",
  "gen-types",
@@ -303,8 +305,9 @@ dependencies = [
 
 [[package]]
 name = "gen-types"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/gen#e4759b7b81b3b4f9505f3723d33bcd7e522dd6c3"
+version = "0.1.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1efa39b439fd999e2f7454c08cb7a4d1f9e6e49ffa805557647f7f998caf7414"
 dependencies = [
  "blake3",
  "chrono",
@@ -375,6 +378,12 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "iana-time-zone"
@@ -804,8 +813,9 @@ dependencies = [
 
 [[package]]
 name = "shigoto-dag"
-version = "0.1.5"
-source = "git+https://github.com/pleme-io/shigoto?branch=main#ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b85f8bdcc6395b7e0a0a6f2ae2f278363366640f55e2b1fde99f091504f89496"
 dependencies = [
  "petgraph",
  "serde",
@@ -815,8 +825,9 @@ dependencies = [
 
 [[package]]
 name = "shigoto-gate"
-version = "0.1.5"
-source = "git+https://github.com/pleme-io/shigoto?branch=main#ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6861edaee79e70afd48da1fcf164184cde5bc21fc2a128f9b85f1eadc60d09e3"
 dependencies = [
  "shigoto-dag",
  "shigoto-types",
@@ -824,13 +835,16 @@ dependencies = [
 
 [[package]]
 name = "shigoto-types"
-version = "0.1.5"
-source = "git+https://github.com/pleme-io/shigoto?branch=main#ec908c1e8456dfe55ad2fe0ed4ad563814f8a44e"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef2261b8c50b892ba86926f41e8155d68bb68f7a32de7d85bd3f249a3da8dfd1"
 dependencies = [
  "async-trait",
+ "blake3",
  "chrono",
  "gen-platform",
  "gen-types",
+ "hex",
  "schemars",
  "serde",
  "serde_json",
