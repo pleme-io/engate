@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "83aa28e57b4601f5049759c4043dedfafd42ef76586874db99f380fe685dab30",
+  "cargo_lock_sha256": "fd2421aa2d10a0b8c89bb47a3d71334fe1deb1ac2f860af59dd0fd71cb982510",
   "manifest_sha256": {
-    "Cargo.toml": "f2f04331b6df617ebb9e902dd7707fc9b519b8ed774528102d7f26c9f6dbfcef",
+    "Cargo.toml": "3226a1e25d0af0d9146019d1a50da91b1d98e7082c6dd8d6115482886a98457d",
     "engate-attach/Cargo.toml": "fd465271e0770edc89ac4803dd1b09c11a40e362499482e01de8709b58d97629",
     "engate-attest/Cargo.toml": "fba23adaf177e8ec2f6fce3e571b93ead559eb67089c1bdb0f02798d14c49b9a",
     "engate-shigoto/Cargo.toml": "2ec8ed214283a85ad525b337cd981e840457c5404ab6cc9b5d73841899cf2dcd",
@@ -209,7 +209,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engate-attach-0.1.1": {
+      "engate-attach-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "drop_bomb",
@@ -223,7 +223,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.1",
+            "package_key": "engate-types-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -279,7 +279,7 @@
           "default"
         ]
       },
-      "engate-attest-0.1.1": {
+      "engate-attest-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -293,7 +293,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.1",
+            "package_key": "engate-types-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -337,7 +337,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engate-shigoto-0.1.1": {
+      "engate-shigoto-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -351,7 +351,7 @@
           },
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.1",
+            "package_key": "engate-attach-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -361,7 +361,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.1",
+            "package_key": "engate-types-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -439,7 +439,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engate-types-0.1.1": {
+      "engate-types-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -3865,28 +3865,28 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
-    "engate-attach-0.1.1": {
+    "engate-attach-0.1.2": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_attach",
         "path": "src/lib.rs"
       }
     },
-    "engate-attest-0.1.1": {
+    "engate-attest-0.1.2": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_attest",
         "path": "src/lib.rs"
       }
     },
-    "engate-shigoto-0.1.1": {
+    "engate-shigoto-0.1.2": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_shigoto",
         "path": "src/lib.rs"
       }
     },
-    "engate-types-0.1.1": {
+    "engate-types-0.1.2": {
       "edition": "2024",
       "lib_target": {
         "name": "engate_types",
