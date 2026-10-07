@@ -34,9 +34,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use engate_attach::{Attach, Consumer, Producer};
 use engate_types::AttachError;
-use shigoto_types::{
-    JobScope, JobSubject, OutputSink, RecordingJob,
-};
+use shigoto_types::{JobScope, JobSubject, OutputSink, RecordingJob};
 
 // ── AttachedHandle ─────────────────────────────────────────────────
 
@@ -116,10 +114,7 @@ where
     /// blanket impl to persist successful attaches across the audit
     /// chain.
     #[must_use]
-    pub fn with_sink(
-        mut self,
-        sink: Arc<dyn OutputSink<AttachedHandle<Cons>>>,
-    ) -> Self {
+    pub fn with_sink(mut self, sink: Arc<dyn OutputSink<AttachedHandle<Cons>>>) -> Self {
         self.sink = Some(sink);
         self
     }
@@ -168,7 +163,10 @@ where
         // Drive the engate typestate. Each transition either advances
         // the type-level phase or returns an AttachError — there is
         // no halfway state to leak.
-        let attach = Attach::builder().producer(producer).consumer(consumer).build();
+        let attach = Attach::builder()
+            .producer(producer)
+            .consumer(consumer)
+            .build();
         let (attach, history) = attach.subscribe()?;
         let attach = attach.replay(history)?;
         // start_live is infallible by construction (Synced has all
@@ -240,7 +238,10 @@ mod tests {
 
     #[test]
     fn attach_job_kind_constant_is_engate_attach() {
-        assert_eq!(<AttachJob<TestProducer, TestConsumer> as RecordingJob>::KIND, "engate.attach");
+        assert_eq!(
+            <AttachJob<TestProducer, TestConsumer> as RecordingJob>::KIND,
+            "engate.attach"
+        );
     }
 
     #[test]

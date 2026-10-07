@@ -265,8 +265,14 @@ mod tests {
     fn engate_spec_clone_equals_original() {
         let s = EngateSpec {
             name: "n".into(),
-            producer: TypePath { crate_name: "p".into(), path: "p::T".into() },
-            consumer: TypePath { crate_name: "c".into(), path: "c::T".into() },
+            producer: TypePath {
+                crate_name: "p".into(),
+                path: "p::T".into(),
+            },
+            consumer: TypePath {
+                crate_name: "c".into(),
+                path: "c::T".into(),
+            },
             history_required: false,
             attestation_fixture: None,
         };
@@ -275,10 +281,22 @@ mod tests {
 
     #[test]
     fn type_path_equality_per_field() {
-        let a = TypePath { crate_name: "x".into(), path: "x::Y".into() };
-        let b = TypePath { crate_name: "x".into(), path: "x::Y".into() };
-        let c = TypePath { crate_name: "x".into(), path: "x::Z".into() };
-        let d = TypePath { crate_name: "z".into(), path: "x::Y".into() };
+        let a = TypePath {
+            crate_name: "x".into(),
+            path: "x::Y".into(),
+        };
+        let b = TypePath {
+            crate_name: "x".into(),
+            path: "x::Y".into(),
+        };
+        let c = TypePath {
+            crate_name: "x".into(),
+            path: "x::Z".into(),
+        };
+        let d = TypePath {
+            crate_name: "z".into(),
+            path: "x::Y".into(),
+        };
         assert_eq!(a, b);
         assert_ne!(a, c);
         assert_ne!(a, d);
