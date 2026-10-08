@@ -81,6 +81,13 @@ pub trait Consumer: Send + 'static {
     fn consume(&mut self, item: Self::Item);
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Polled {
+    Item,
+    Empty,
+    Closed,
+}
+
 // ── History — linear-ish snapshot handle ────────────────────────────
 
 /// A snapshot in flight from producer to consumer. `#[must_use]` +
@@ -279,13 +286,18 @@ where
     /// Useful for embedding the drain inside an existing event loop
     /// (winit, tokio task, etc.) instead of dedicating a thread.
     pub fn poll_one(&mut self) -> bool {
+        self.poll() == Polled::Item
+    }
+
+    pub fn poll(&mut self) -> Polled {
         let rx = self.rx.as_ref().expect("Attach<Live> always has rx");
         match rx.try_recv() {
             Ok(item) => {
                 self.consumer.consume(item);
-                true
+                Polled::Item
             }
-            Err(_) => false,
+            Err(mpsc::TryRecvError::Empty) => Polled::Empty,
+            Err(mpsc::TryRecvError::Disconnected) => Polled::Closed,
         }
     }
 }
@@ -574,6 +586,43 @@ mod tests {
         let returned_consumer = attach.start_live().run();
         // The Arc inside the consumer is the same one the test held.
         assert_eq!(*returned_consumer.0.lock().unwrap(), vec![10, 20, 30, 40]);
+    }
+
+    #[test]
+    fn poll_tells_an_item_from_an_empty_stream_from_a_closed_one() {
+        let observed = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let prod = VecProducer::new(vec![], vec![7, 8]);
+        let cons = VecConsumer(observed.clone());
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let attach = attach.replay(history).unwrap();
+        let tx = attach.producer.tx.lock().unwrap().clone().unwrap();
+        let mut attach = attach.start_live();
+        assert_eq!(attach.poll(), Polled::Empty);
+        tx.send(1).unwrap();
+        assert_eq!(attach.poll(), Polled::Item);
+        assert_eq!(attach.poll(), Polled::Empty);
+        drop(tx);
+        attach.producer.flush_live_and_close();
+        assert_eq!(attach.poll(), Polled::Item);
+        assert_eq!(attach.poll(), Polled::Item);
+        assert_eq!(attach.poll(), Polled::Closed);
+        assert_eq!(attach.poll(), Polled::Closed, "closed stays closed");
+        assert_eq!(*observed.lock().unwrap(), vec![1, 7, 8]);
+    }
+
+    #[test]
+    fn poll_one_still_answers_false_for_both_empty_and_closed() {
+        let prod = VecProducer::new(vec![], vec![]);
+        let cons = VecConsumer::default();
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let attach = attach.replay(history).unwrap();
+        let mut attach = attach.start_live();
+        assert!(!attach.poll_one());
+        attach.producer.flush_live_and_close();
+        assert!(!attach.poll_one());
+        assert_eq!(attach.poll(), Polled::Closed);
     }
 
     /// Phase markers from engate-types are stable + name-resolvable
