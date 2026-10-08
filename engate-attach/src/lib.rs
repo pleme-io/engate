@@ -60,6 +60,16 @@ pub trait Producer: Send + Sync + 'static {
     /// pushed asynchronously by the producer. Dropping the receiver
     /// unsubscribes.
     fn subscribe(&self) -> Result<mpsc::Receiver<Self::Item>, AttachError>;
+
+    fn replay_source(&self) -> ReplaySource {
+        ReplaySource::Snapshot
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReplaySource {
+    Snapshot,
+    Stream,
 }
 
 /// A consumer of producer items + snapshots. Mirrors the producer's
@@ -79,6 +89,10 @@ pub trait Consumer: Send + 'static {
     /// Apply a single live item. Called once per item after
     /// `start_live` is invoked.
     fn consume(&mut self, item: Self::Item);
+
+    fn replay_item(&mut self, item: Self::Item) {
+        self.consume(item);
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,31 +114,66 @@ pub enum Polled {
 /// into the consumer and defuses the bomb.
 #[must_use = "engate::History must be passed to Attach::replay() — dropping it loses the producer's pre-attach state and reintroduces the bug class engate exists to eliminate"]
 pub struct History<S: Snapshot> {
-    snapshot: S,
+    carried: Carried<S>,
     bomb: DropBomb,
 }
 
+enum Carried<S> {
+    Snapshot(S),
+    Stream,
+    Taken,
+}
+
 impl<S: Snapshot> History<S> {
-    fn new(snapshot: S) -> Self {
+    fn new(carried: Carried<S>) -> Self {
         Self {
-            snapshot,
+            carried,
             bomb: DropBomb::new(
                 "engate::History dropped without being consumed — pass it to Attach::replay()",
             ),
         }
     }
 
-    /// Move out the snapshot, defusing the drop-bomb. Called inside
-    /// `Attach::replay`. Public so external code that needs to
-    /// inspect the snapshot can do so without panicking on drop.
-    pub fn into_inner(mut self) -> S {
+    fn take(mut self) -> Carried<S> {
         self.bomb.defuse();
-        self.snapshot
+        std::mem::replace(&mut self.carried, Carried::Taken)
     }
 
-    /// Approximate byte size — useful for tracing replay cost.
+    /// Move out the snapshot, defusing the drop-bomb. Public so external
+    /// code that needs to inspect the snapshot can do so without
+    /// panicking on drop.
+    ///
+    /// # Panics
+    /// When the producer's stream carries the history
+    /// ([`History::source`] is [`ReplaySource::Stream`]): there is no
+    /// snapshot to move out. [`History::into_snapshot`] answers `None`
+    /// there instead.
+    pub fn into_inner(self) -> S {
+        self.into_snapshot()
+            .expect("engate::History::into_inner on a stream-carried history: there is no snapshot; read History::source or call into_snapshot")
+    }
+
+    pub fn into_snapshot(self) -> Option<S> {
+        match self.take() {
+            Carried::Snapshot(s) => Some(s),
+            Carried::Stream | Carried::Taken => None,
+        }
+    }
+
+    pub fn source(&self) -> ReplaySource {
+        match self.carried {
+            Carried::Stream => ReplaySource::Stream,
+            Carried::Snapshot(_) | Carried::Taken => ReplaySource::Snapshot,
+        }
+    }
+
+    /// Approximate byte size — useful for tracing replay cost; `0` when
+    /// the stream carries the history.
     pub fn size_bytes(&self) -> usize {
-        self.snapshot.size_bytes()
+        match &self.carried {
+            Carried::Snapshot(s) => s.size_bytes(),
+            Carried::Stream | Carried::Taken => 0,
+        }
     }
 }
 
@@ -195,20 +244,31 @@ where
 {
     /// `Spawned → Subscribed`. Subscribe to the live stream FIRST
     /// (so no item between subscribe and snapshot is lost), then
-    /// capture the snapshot. Returns the new phase + a `History`
-    /// handle that must be passed to `replay` (drop-bomb prevents
-    /// forgetting).
+    /// capture the snapshot, unless the producer's stream carries the
+    /// history. Returns the new phase + a `History` handle that must
+    /// be passed to `replay` (drop-bomb prevents forgetting).
     pub fn subscribe(
         self,
     ) -> Result<(Attach<Subscribed, Prod, Cons>, History<Prod::Snap>), AttachError> {
         let rx = self.producer.subscribe()?;
-        let snap = self.producer.snapshot()?;
-        tracing::debug!(
-            target: "engate::attach",
-            snapshot_bytes = snap.size_bytes(),
-            "subscribe complete — snapshot captured"
-        );
-        let history = History::new(snap);
+        let history = match self.producer.replay_source() {
+            ReplaySource::Snapshot => {
+                let snap = self.producer.snapshot()?;
+                tracing::debug!(
+                    target: "engate::attach",
+                    snapshot_bytes = snap.size_bytes(),
+                    "subscribe complete — snapshot captured"
+                );
+                History::new(Carried::Snapshot(snap))
+            }
+            ReplaySource::Stream => {
+                tracing::debug!(
+                    target: "engate::attach",
+                    "subscribe complete — the stream carries the history"
+                );
+                History::new(Carried::Stream)
+            }
+        };
         let next = Attach {
             producer: self.producer,
             consumer: self.consumer,
@@ -225,17 +285,29 @@ where
     Cons: Consumer<Item = Prod::Item, Snap = Prod::Snap>,
 {
     /// `Subscribed → Synced`. Consumes the `History` handle and
-    /// replays the snapshot into the consumer. `History` is moved
-    /// (not borrowed) so the type system enforces "exactly once".
+    /// replays the history into the consumer: the snapshot, or the
+    /// stream's first item when the stream carries it. `History` is
+    /// moved (not borrowed) so the type system enforces "exactly once".
     pub fn replay(
         self,
         history: History<Prod::Snap>,
     ) -> Result<Attach<Synced, Prod, Cons>, AttachError> {
-        let snap = history.into_inner();
-        let bytes = snap.size_bytes();
         let mut consumer = self.consumer;
-        consumer.replay(snap);
-        tracing::debug!(target: "engate::attach", bytes, "replay complete");
+        match history.take() {
+            Carried::Snapshot(snap) => {
+                let bytes = snap.size_bytes();
+                consumer.replay(snap);
+                tracing::debug!(target: "engate::attach", bytes, "replay complete");
+            }
+            Carried::Stream | Carried::Taken => {
+                let first = self.rx.as_ref().and_then(|rx| rx.recv().ok());
+                let replayed = first.is_some();
+                if let Some(item) = first {
+                    consumer.replay_item(item);
+                }
+                tracing::debug!(target: "engate::attach", replayed, "stream replay complete");
+            }
+        }
         Ok(Attach {
             producer: self.producer,
             consumer,
@@ -623,6 +695,241 @@ mod tests {
         attach.producer.flush_live_and_close();
         assert!(!attach.poll_one());
         assert_eq!(attach.poll(), Polled::Closed);
+    }
+
+    struct StreamProducer {
+        history: Option<Vec<u8>>,
+        snapshots: Arc<Mutex<usize>>,
+        tx: Mutex<Option<mpsc::Sender<Vec<u8>>>>,
+    }
+
+    impl StreamProducer {
+        fn new(history: Option<Vec<u8>>) -> (Self, Arc<Mutex<usize>>) {
+            let snapshots = Arc::new(Mutex::new(0));
+            (
+                Self {
+                    history,
+                    snapshots: Arc::clone(&snapshots),
+                    tx: Mutex::new(None),
+                },
+                snapshots,
+            )
+        }
+    }
+
+    impl Producer for StreamProducer {
+        type Item = Vec<u8>;
+        type Snap = Vec<u8>;
+
+        fn snapshot(&self) -> Result<Self::Snap, AttachError> {
+            *self.snapshots.lock().unwrap() += 1;
+            Ok(vec![0xEE])
+        }
+
+        fn subscribe(&self) -> Result<mpsc::Receiver<Self::Item>, AttachError> {
+            let (tx, rx) = mpsc::channel();
+            if let Some(h) = &self.history {
+                tx.send(h.clone()).unwrap();
+                *self.tx.lock().unwrap() = Some(tx);
+            }
+            Ok(rx)
+        }
+
+        fn replay_source(&self) -> ReplaySource {
+            ReplaySource::Stream
+        }
+    }
+
+    #[derive(Default)]
+    struct Recorder(Arc<Mutex<Vec<(&'static str, Vec<u8>)>>>);
+
+    impl Consumer for Recorder {
+        type Item = Vec<u8>;
+        type Snap = Vec<u8>;
+
+        fn replay(&mut self, snapshot: Self::Snap) {
+            self.0.lock().unwrap().push(("snapshot", snapshot));
+        }
+
+        fn consume(&mut self, item: Self::Item) {
+            self.0.lock().unwrap().push(("live", item));
+        }
+
+        fn replay_item(&mut self, item: Self::Item) {
+            self.0.lock().unwrap().push(("replay", item));
+        }
+    }
+
+    struct Plain(Arc<Mutex<Vec<Vec<u8>>>>);
+
+    impl Consumer for Plain {
+        type Item = Vec<u8>;
+        type Snap = Vec<u8>;
+
+        fn replay(&mut self, snapshot: Self::Snap) {
+            self.0.lock().unwrap().push(snapshot);
+        }
+
+        fn consume(&mut self, item: Self::Item) {
+            self.0.lock().unwrap().push(item);
+        }
+    }
+
+    #[test]
+    fn a_stream_carried_history_is_the_first_item_and_no_snapshot_is_taken() {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let (prod, snapshots) = StreamProducer::new(Some(vec![1, 2, 3]));
+        let attach = Attach::builder()
+            .producer(prod)
+            .consumer(Recorder(Arc::clone(&seen)))
+            .build();
+        let (attach, history) = attach.subscribe().unwrap();
+        assert_eq!(history.source(), ReplaySource::Stream);
+        assert_eq!(history.size_bytes(), 0);
+        let attach = attach.replay(history).unwrap();
+        let tx = attach.producer.tx.lock().unwrap().take().unwrap();
+        tx.send(vec![4]).unwrap();
+        tx.send(vec![5]).unwrap();
+        drop(tx);
+        let _ = attach.start_live().run();
+        assert_eq!(*snapshots.lock().unwrap(), 0);
+        assert_eq!(
+            *seen.lock().unwrap(),
+            vec![
+                ("replay", vec![1, 2, 3]),
+                ("live", vec![4]),
+                ("live", vec![5])
+            ]
+        );
+    }
+
+    #[test]
+    fn a_consumer_that_names_no_replay_item_consumes_the_history_item() {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let (prod, _) = StreamProducer::new(Some(vec![7]));
+        let attach = Attach::builder()
+            .producer(prod)
+            .consumer(Plain(Arc::clone(&seen)))
+            .build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let attach = attach.replay(history).unwrap();
+        attach.producer.tx.lock().unwrap().take();
+        let _ = attach.start_live().run();
+        assert_eq!(*seen.lock().unwrap(), vec![vec![7]]);
+    }
+
+    #[test]
+    fn a_stream_closed_before_its_history_replays_nothing_and_reads_closed() {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let (prod, snapshots) = StreamProducer::new(None);
+        let attach = Attach::builder()
+            .producer(prod)
+            .consumer(Recorder(Arc::clone(&seen)))
+            .build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let mut live = attach.replay(history).unwrap().start_live();
+        assert_eq!(live.poll(), Polled::Closed);
+        assert!(seen.lock().unwrap().is_empty());
+        assert_eq!(*snapshots.lock().unwrap(), 0);
+    }
+
+    #[test]
+    fn a_stream_carried_history_has_no_snapshot_to_take() {
+        let (prod, _) = StreamProducer::new(Some(vec![1]));
+        let attach = Attach::builder()
+            .producer(prod)
+            .consumer(Recorder::default())
+            .build();
+        let (_attach, history) = attach.subscribe().unwrap();
+        assert_eq!(history.into_snapshot(), None);
+    }
+
+    #[test]
+    #[should_panic(expected = "stream-carried history")]
+    fn into_inner_on_a_stream_carried_history_names_why_it_has_no_snapshot() {
+        let (prod, _) = StreamProducer::new(Some(vec![1]));
+        let attach = Attach::builder()
+            .producer(prod)
+            .consumer(Recorder::default())
+            .build();
+        let (_attach, history) = attach.subscribe().unwrap();
+        let _ = history.into_inner();
+    }
+
+    #[test]
+    fn a_snapshot_history_moves_out_through_into_snapshot_too() {
+        let prod = VecProducer::new(vec![4, 2], vec![]);
+        let attach = Attach::builder()
+            .producer(prod)
+            .consumer(VecConsumer::default())
+            .build();
+        let (_attach, history) = attach.subscribe().unwrap();
+        assert_eq!(history.into_snapshot(), Some(vec![4, 2]));
+    }
+
+    struct AsksAfterSubscribe {
+        subscribed: Mutex<bool>,
+        snapshots: Arc<Mutex<usize>>,
+        tx: Mutex<Option<mpsc::Sender<Vec<u8>>>>,
+    }
+
+    impl Producer for AsksAfterSubscribe {
+        type Item = Vec<u8>;
+        type Snap = Vec<u8>;
+
+        fn snapshot(&self) -> Result<Self::Snap, AttachError> {
+            *self.snapshots.lock().unwrap() += 1;
+            Ok(vec![0xEE])
+        }
+
+        fn subscribe(&self) -> Result<mpsc::Receiver<Self::Item>, AttachError> {
+            let (tx, rx) = mpsc::channel();
+            tx.send(vec![7]).unwrap();
+            *self.tx.lock().unwrap() = Some(tx);
+            *self.subscribed.lock().unwrap() = true;
+            Ok(rx)
+        }
+
+        fn replay_source(&self) -> ReplaySource {
+            if *self.subscribed.lock().unwrap() {
+                ReplaySource::Stream
+            } else {
+                ReplaySource::Snapshot
+            }
+        }
+    }
+
+    #[test]
+    fn replay_source_is_asked_of_the_subscription_subscribe_just_opened() {
+        let snapshots = Arc::new(Mutex::new(0));
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let attach = Attach::builder()
+            .producer(AsksAfterSubscribe {
+                subscribed: Mutex::new(false),
+                snapshots: Arc::clone(&snapshots),
+                tx: Mutex::new(None),
+            })
+            .consumer(Recorder(Arc::clone(&seen)))
+            .build();
+        let (attach, history) = attach.subscribe().unwrap();
+        assert_eq!(history.source(), ReplaySource::Stream);
+        let attach = attach.replay(history).unwrap();
+        attach.producer.tx.lock().unwrap().take();
+        let _ = attach.start_live().run();
+        assert_eq!(*snapshots.lock().unwrap(), 0);
+        assert_eq!(*seen.lock().unwrap(), vec![("replay", vec![7])]);
+    }
+
+    #[test]
+    fn a_snapshot_history_names_its_source() {
+        let prod = VecProducer::new(vec![1], vec![]);
+        let attach = Attach::builder()
+            .producer(prod)
+            .consumer(VecConsumer::default())
+            .build();
+        let (attach, history) = attach.subscribe().unwrap();
+        assert_eq!(history.source(), ReplaySource::Snapshot);
+        let _ = attach.replay(history);
     }
 
     /// Phase markers from engate-types are stable + name-resolvable

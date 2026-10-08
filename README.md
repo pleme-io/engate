@@ -49,6 +49,26 @@ Four properties the type system enforces:
    demonstrate; proptest covers the invariant; loom (gated on
    compat-fix) exhaustively schedules.
 
+## A producer whose stream carries the history
+
+Some producers open every subscription with their own history as the
+stream's first item — tear's daemon writes the pane's fenced replay
+before any live byte. Snapshotting such a producer as well replays the
+history twice, the second copy through the consumer's live path.
+
+Such a producer answers `Producer::replay_source()` with
+`ReplaySource::Stream`. `Attach::subscribe` asks it right after
+`subscribe()` returns, so the answer describes the subscription just
+opened (a producer that dials a new connection per subscription reads
+that connection's peer, not an older one's), and then takes no
+snapshot. `Attach::replay` waits for the stream's first item and hands
+it to `Consumer::replay_item`, exactly once; its default is `consume`,
+so a consumer that must not answer a replayed query overrides it.
+`History::source()` says which path an attach took; `into_snapshot()`
+is `None` for a stream-carried history, and `into_inner()` panics there.
+The default is `ReplaySource::Snapshot`, so every existing producer
+keeps the snapshot path unchanged.
+
 ## Crates
 
 | Crate | Purpose |

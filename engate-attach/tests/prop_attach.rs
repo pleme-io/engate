@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc;
 
-use engate_attach::{Attach, Consumer, Producer};
+use engate_attach::{Attach, Consumer, Producer, ReplaySource};
 use engate_types::AttachError;
 use proptest::prelude::*;
 
@@ -101,6 +101,57 @@ proptest! {
         drain_live(&tx_handle, post);
         let attach = attach.start_live();
         let _ = attach.run();
+
+        prop_assert_eq!(&*observed.lock().unwrap(), &expected);
+    }
+}
+
+struct StreamRef {
+    history: Vec<u8>,
+    shared_tx: Arc<Mutex<Option<mpsc::Sender<u8>>>>,
+}
+
+impl Producer for StreamRef {
+    type Item = u8;
+    type Snap = Vec<u8>;
+
+    fn snapshot(&self) -> Result<Self::Snap, AttachError> {
+        Err(AttachError::SnapshotFailed(
+            "a stream-carried producer is never snapshotted".into(),
+        ))
+    }
+
+    fn subscribe(&self) -> Result<mpsc::Receiver<Self::Item>, AttachError> {
+        let (tx, rx) = mpsc::channel();
+        for b in &self.history {
+            let _ = tx.send(*b);
+        }
+        *self.shared_tx.lock().unwrap() = Some(tx);
+        Ok(rx)
+    }
+
+    fn replay_source(&self) -> ReplaySource {
+        ReplaySource::Stream
+    }
+}
+
+proptest! {
+    #[test]
+    fn a_stream_carried_history_is_observed_once_before_the_live_items(
+        pre in proptest::collection::vec(any::<u8>(), 1..256),
+        post in proptest::collection::vec(any::<u8>(), 0..256),
+    ) {
+        let observed = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let cons = VecConsumer(observed.clone());
+        let expected: Vec<u8> = pre.iter().chain(post.iter()).copied().collect();
+        let tx_handle: Arc<Mutex<Option<mpsc::Sender<u8>>>> = Arc::new(Mutex::new(None));
+        let prod = StreamRef { history: pre, shared_tx: tx_handle.clone() };
+
+        let attach = Attach::builder().producer(prod).consumer(cons).build();
+        let (attach, history) = attach.subscribe().unwrap();
+        let attach = attach.replay(history).unwrap();
+        drain_live(&tx_handle, post);
+        let _ = attach.start_live().run();
 
         prop_assert_eq!(&*observed.lock().unwrap(), &expected);
     }
