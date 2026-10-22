@@ -141,6 +141,12 @@ pub enum AttachError {
     /// Generic transport / I/O error during attach.
     #[error("transport: {0}")]
     Transport(String),
+
+    /// The producer refused to send the entity's state because it does
+    /// not fit one transport frame. Retrying cannot succeed until the
+    /// state shrinks.
+    #[error("state exceeds one transport frame: {0}")]
+    StateExceedsFrame(String),
 }
 
 // ── EngateSpec — author surface ─────────────────────────────────────
@@ -309,11 +315,23 @@ mod tests {
             AttachError::SubscribeFailed("permission".into()),
             AttachError::NoSuchEntity("pane-x".into()),
             AttachError::Transport("connection reset".into()),
+            AttachError::StateExceedsFrame("pane snapshot is 18 MB".into()),
         ];
         for e in errs {
             let s = e.to_string();
             assert!(!s.is_empty(), "Display non-empty for {e:?}");
         }
+    }
+
+    #[test]
+    fn state_exceeds_frame_round_trips_as_its_own_variant() {
+        let e = AttachError::StateExceedsFrame("pane snapshot is 18 MB".into());
+        assert_eq!(
+            e.to_string(),
+            "state exceeds one transport frame: pane snapshot is 18 MB"
+        );
+        let back: AttachError = serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert!(matches!(back, AttachError::StateExceedsFrame(d) if d == "pane snapshot is 18 MB"));
     }
 
     #[test]

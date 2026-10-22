@@ -565,6 +565,7 @@ mod tests {
             AttachError::SubscribeFailed("b".into()),
             AttachError::NoSuchEntity("c".into()),
             AttachError::Transport("d".into()),
+            AttachError::StateExceedsFrame("e".into()),
         ];
         for e in errors {
             // No panic + non-empty string.
