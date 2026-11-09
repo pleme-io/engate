@@ -128,7 +128,6 @@ keeps the snapshot path unchanged.
 
 ## Theory
 
-See `pleme-io/theory/` for the unified compounding-substrate frame;
 engate is one application of the "typed primitive that makes the bug
 class unrepresentable" pattern (Pillar 12 — generation over
 composition; Pillar 10 — proof discipline). The CLAUDE.md tracker
